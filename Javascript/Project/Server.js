@@ -1,49 +1,61 @@
-// Import the required modules: http for creating the server and url for parsing the request URLs
-const http = require('http');
-const url = require('url');
+// Import the 'http' module to create an HTTP server
+var http = require('http');
+// Import the 'url' module to parse URL strings
+var url = require('url');
 
-// Define an array of student objects with id, name, and score properties
-const students = [
-  { id: 11111, name: 'Bruce Lee', score: 84 },
-  { id: 22222, name: 'Jackie Chan', score: 93 }, // Corrected 'Jackie Chen' to 'Jackie Chan'
-  { id: 33333, name: 'Jet Li', score: 88 },
-];
+// Function to parse a given time and return an object with hour, minute, and second properties
+function parsetime(time) {
+  return {
+    hour: time.getHours(),
+    minute: time.getMinutes(),
+    second: time.getSeconds()
+  };
+}
 
-// Create the HTTP server
-const server = http.createServer((req, res) => {
-  // Parse the incoming request URL and extract the query parameters and pathname
-  const parsedUrl = url.parse(req.url, true);
-  const query = parsedUrl.query;
-  const pathname = parsedUrl.pathname;
+// Function to convert a given time to UNIX epoch time and return an object with 'unixtime' property
+function unixtime(time) {
+  return { unixtime: time.getTime() };
+}
 
-  // Check if the request is for the '/api/score' endpoint
-  if (pathname === '/api/score') {
-    // Extract the 'student_id' parameter from the query string and convert it to an integer
-    const studentId = parseInt(query.student_id, 10);
+// Function to retrieve the current time and return an object with year, month, date, hour, and minute properties
+function currenttime() {
+  var now = new Date();
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1, // Months are zero-indexed, so we add 1 to get the correct month
+    date: now.getDate(),
+    hour: now.getHours(),
+    minute: now.getMinutes()
+  };
+}
 
-    // Find the student object in the 'students' array that matches the given student ID
-    const student = students.find(s => s.id === studentId);
+// Create an HTTP server that listens for requests
+var server = http.createServer(function (req, res) {
+  // Parse the request URL to extract its components, including the path and query parameters
+  var parsedUrl = url.parse(req.url, true);
 
-    // If a student is found, send a 200 response with the student data in JSON format
-    if (student) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(student));
-    } else {
-      // If no student is found, send a 404 response with an error message
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Student not found' }));
-    }
+  // Check the requested path and respond accordingly
+  if (parsedUrl.pathname === '/api/parsetime') {
+    // If the path is '/api/parsetime', parse the provided time and return the result as JSON
+    var time = new Date(parsedUrl.query.iso);
+    res.writeHead(200, { 'Content-Type': 'application/json' }); // Set the response header
+    res.end(JSON.stringify(parsetime(time))); // Send the JSON response
+  } else if (parsedUrl.pathname === '/api/unixtime') {
+    // If the path is '/api/unixtime', convert the provided time to UNIX epoch time and return it as JSON
+    var time = new Date(parsedUrl.query.iso);
+    res.writeHead(200, { 'Content-Type': 'application/json' }); // Set the response header
+    res.end(JSON.stringify(unixtime(time))); // Send the JSON response
+  } else if (parsedUrl.pathname === '/api/currenttime') {
+    // If the path is '/api/currenttime', retrieve the current time and return it as JSON
+    var currentTime = currenttime();
+    res.writeHead(200, { 'Content-Type': 'application/json' }); // Set the response header
+    res.end(JSON.stringify(currentTime)); // Send the JSON response
   } else {
-    // If the request is not for the '/api/score' endpoint, send a 404 response with an error message
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not Found' }));
+    // If the requested path doesn't match any of the defined endpoints, respond with a 404 status code
+    res.writeHead(404);
+    res.end();
   }
 });
 
-// Define the port number where the server will listen for requests
-const PORT = 8000;
-
-// Start the server and listen on the defined port
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Start the server and make it listen on port 8000
+server.listen(8000);
